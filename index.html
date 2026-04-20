@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Writing Systems of the World — First-Principles Classifier</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --color-bg: #ffffff;
+    --color-bg-secondary: #f6f5f0;
+    --color-text-primary: #1a1a18;
+    --color-text-secondary: #5f5e5a;
+    --color-text-tertiary: #888780;
+    --color-border: rgba(0,0,0,0.12);
+    --color-border-strong: rgba(0,0,0,0.22);
+    --color-accent: #185FA5;
+    --color-accent-light: #E6F1FB;
+    --color-highlight-row: #E6F1FB;
+    --font-sans: 'Georgia', 'Times New Roman', serif;
+    --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-bg: #1a1a18;
+      --color-bg-secondary: #242421;
+      --color-text-primary: #f0ede6;
+      --color-text-secondary: #b4b2a9;
+      --color-text-tertiary: #888780;
+      --color-border: rgba(255,255,255,0.1);
+      --color-border-strong: rgba(255,255,255,0.2);
+      --color-highlight-row: #0C447C;
+    }
+  }
+  body {
+    font-family: var(--font-ui);
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    padding: 2rem 1.5rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+  .ws-header { margin-bottom: 1.5rem; border-bottom: 0.5px solid var(--color-border); padding-bottom: 1rem; }
+  .ws-header h1 { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+  .ws-header p { font-size: 13px; color: var(--color-text-secondary); }
+  .filter-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1rem; }
+  .filter-btn {
+    font-size: 11px; padding: 4px 10px; border-radius: 20px;
+    border: 0.5px solid var(--color-border-strong);
+    background: var(--color-bg); color: var(--color-text-secondary);
+    cursor: pointer; transition: all 0.15s; font-family: var(--font-ui);
+  }
+  .filter-btn.active { background: #185FA5; color: #E6F1FB; border-color: #185FA5; }
+  .filter-btn:hover:not(.active) { background: var(--color-bg-secondary); }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1rem; }
+  .leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--color-text-secondary); }
+  .leg-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .table-wrap { overflow-x: auto; margin-bottom: 2rem; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 950px; }
+  th {
+    font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--color-text-tertiary); padding: 8px 10px; text-align: left;
+    background: var(--color-bg-secondary); border-bottom: 0.5px solid var(--color-border);
+    white-space: nowrap; position: sticky; top: 0; z-index: 10;
+  }
+  td { padding: 8px 10px; border-bottom: 0.5px solid var(--color-border); vertical-align: top; line-height: 1.45; }
+  tr:hover td { background: var(--color-bg-secondary); }
+  .row-highlight td { background: var(--color-highlight-row) !important; }
+  .badge {
+    display: inline-block; font-size: 10px; padding: 2px 7px;
+    border-radius: 10px; white-space: nowrap; font-weight: 400;
+  }
+  .badge-abjad { background: #FAEEDA; color: #854F0B; }
+  .badge-alphabet { background: #EAF3DE; color: #3B6D11; }
+  .badge-abugida { background: #E6F1FB; color: #185FA5; }
+  .badge-syllabary { background: #EEEDFE; color: #534AB7; }
+  .badge-logographic { background: #FCEBEB; color: #A32D2D; }
+  .badge-featural { background: #FBEAF0; color: #993556; }
+  .badge-mixed { background: #F1EFE8; color: #5F5E5A; }
+  .script-name { font-weight: 500; font-size: 13px; }
+  .native { font-size: 15px; color: var(--color-text-secondary); display: block; margin-top: 2px; }
+  .special-note { font-size: 11px; color: #185FA5; margin-top: 3px; display: block; }
+  .section-group-row td {
+    background: var(--color-bg-secondary) !important;
+    font-size: 11px; font-weight: 500; color: var(--color-text-tertiary);
+    padding: 6px 10px; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .mandarin-section {
+    background: var(--color-bg-secondary); border: 0.5px solid var(--color-border-strong);
+    border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1.5rem;
+  }
+  .mandarin-section h2 { font-size: 16px; font-weight: 500; margin-bottom: 8px; }
+  .mandarin-section > p { font-size: 13px; color: var(--color-text-secondary); line-height: 1.7; margin-bottom: 1rem; }
+  .mandarin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 700px) { .mandarin-grid { grid-template-columns: 1fr; } }
+  .mandarin-card {
+    background: var(--color-bg); border: 0.5px solid var(--color-border);
+    border-radius: var(--radius-md); padding: 0.75rem 1rem;
+  }
+  .mandarin-card h3 { font-size: 13px; font-weight: 500; margin-bottom: 6px; color: #185FA5; }
+  .mandarin-card p { font-size: 12px; color: var(--color-text-secondary); line-height: 1.6; }
+  .mandarin-note {
+    margin-top: 1rem; padding: 0.75rem 1rem;
+    border-left: 3px solid #378ADD; background: var(--color-bg);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  }
+  .mandarin-note p { font-size: 12px; color: var(--color-text-secondary); line-height: 1.7; }
+  .footer { font-size: 11px; color: var(--color-text-tertiary); margin-top: 2rem; padding-top: 1rem; border-top: 0.5px solid var(--color-border); }
+</style>
+</head>
+<body>
+
+<div class="ws-header">
+  <h1>Writing Systems of the World — First-Principles Classifier</h1>
+  <p>Sorted by origin lineage · Brahmi / Sanskrit / Devanagari highlighted · Filter by system type</p>
+</div>
+
+<div class="filter-bar">
+  <button class="filter-btn active" onclick="filterTable('all',this)">All systems</button>
+  <button class="filter-btn" onclick="filterTable('abugida',this)">Abugidas (Brahmi family)</button>
+  <button class="filter-btn" onclick="filterTable('alphabet',this)">Alphabets</button>
+  <button class="filter-btn" onclick="filterTable('abjad',this)">Abjads</button>
+  <button class="filter-btn" onclick="filterTable('syllabary',this)">Syllabaries</button>
+  <button class="filter-btn" onclick="filterTable('logographic',this)">Logographic</button>
+  <button class="filter-btn" onclick="filterTable('featural',this)">Featural</button>
+</div>
+
+<div class="legend">
+  <span class="leg-item"><span class="leg-dot" style="background:#EF9F27;"></span>Abjad</span>
+  <span class="leg-item"><span class="leg-dot" style="background:#639922;"></span>Alphabet</span>
+  <span class="leg-item"><span class="leg-dot" style="background:#378ADD;"></span>Abugida</span>
+  <span class="leg-item"><span class="leg-dot" style="background:#7F77DD;"></span>Syllabary</span>
+  <span class="leg-item"><span class="leg-dot" style="background:#E24B4A;"></span>Logographic</span>
+  <span class="leg-item"><span class="leg-dot" style="background:#D4537E;"></span>Featural</span>
+  <span class="leg-item"><span class="leg-dot" style="background:#888780;"></span>Mixed / Other</span>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Script / System</th>
+        <th>Type</th>
+        <th>Origin era</th>
+        <th>Direct ancestor</th>
+        <th>Geographic origin</th>
+        <th>Direction</th>
+        <th>Vowels encoded?</th>
+        <th>Phoneme unit</th>
+        <th>Active speakers</th>
+        <th>Key languages</th>
+        <th>Distinctive feature</th>
+      </tr>
+    </thead>
+    <tbody id="table-body"></tbody>
+  </table>
+</div>
+
+<div class="mandarin-section">
+  <h2>Chinese writing — a civilization that wrote in isolation</h2>
+  <p>Despite India and Central Asia (the Mongol steppe) being close neighbors, Chinese writing developed and persisted as a fully independent logographic system with no borrowing from Brahmi or Arabic scripts. Four structural reasons explain this.</p>
+  <div class="mandarin-grid">
+    <div class="mandarin-card">
+      <h3>1. Geography as insulation</h3>
+      <p>The Himalayas, Tibetan plateau, Taklamakan Desert, and Gobi Desert form a near-impassable barrier on three sides. Silk Road trade moved goods and Buddhism — but not script. Chinese script was already mature (Oracle Bone script, ~1250 BCE) before significant land contact with South Asia.</p>
+    </div>
+    <div class="mandarin-card">
+      <h3>2. Tone-language incompatibility</h3>
+      <p>Mandarin (and Cantonese, Min, Wu) are tonal languages. Alphabets and abugidas encode consonants and vowels — not tone. A logographic system naturally sidesteps tone encoding by mapping morphemes directly. Adopting Brahmi or Phoenician scripts would require entirely new phonological conventions.</p>
+    </div>
+    <div class="mandarin-card">
+      <h3>3. Political-administrative continuity</h3>
+      <p>Chinese characters unified mutually unintelligible spoken dialects under one written standard — a powerful political tool. From the Qin dynasty (221 BCE), standardized characters were the imperial administrative glue. No dynasty had incentive to adopt a foreign script and lose this cohesion.</p>
+    </div>
+    <div class="mandarin-card">
+      <h3>4. Influence went outward, not inward</h3>
+      <p>Chinese characters radiated to Japan (kanji), Korea (hanja, replaced by Hangul 1443 CE), Vietnam (chữ Nôm). The Mongols under Kublai Khan commissioned Phags-pa script (1269 CE) — derived from Tibetan/Sanskrit — but it never replaced Chinese characters. Chinese absorbed Buddhism's ideas via translation, not its script.</p>
+    </div>
+  </div>
+  <div class="mandarin-note">
+    <p><strong>Chinese script at a glance:</strong> Oracle Bone (~1250 BCE) → Bronze inscriptions → Seal script (Qin, 221 BCE) → Clerical → Standard (楷書 kǎishū, ~200 CE) → Simplified (1950s PRC reform). ~50,000 characters exist; literacy requires ~3,500. Each character = one syllable = one morpheme (mostly). Pinyin (1958) uses Latin alphabet for romanization only — not a replacement script.</p>
+  </div>
+</div>
+
+
+<div class="footer">
+  Generated for language studies by· <a href="https://sreeraman.in/" style="color:var(--color-text-tertiary); text-decoration:underline;">Sreeraman Thiagarajan</a> · April 2026 · Data accurate to scholarly consensus as of 2025
+</div>
+
+<script>
+const data = [
+  {
+    group: "I. Proto-Sinaitic → Phoenician → Semitic branch",
+    rows: [
+      { name:"Proto-Sinaitic", native:"𓆓𓅓𓇋", type:"abjad", era:"~1850–1500 BCE", ancestor:"Egyptian hieroglyphs (acrophonic)", geo:"Sinai Peninsula", dir:"Variable (early)", vowels:"No", phoneme:"Consonant", speakers:"— (ancestor only)", langs:"Ancestral to all Semitic scripts", note:"Root of nearly all world scripts", highlight:false },
+      { name:"Phoenician", native:"𐤀𐤁𐤂", type:"abjad", era:"~1050 BCE", ancestor:"Proto-Sinaitic", geo:"Lebanon/Levant coast", dir:"RTL", vowels:"No", phoneme:"Consonant (22 letters)", speakers:"— (extinct)", langs:"Phoenician, Punic", note:"Ancestor of Greek, Arabic, Hebrew, Aramaic", highlight:false },
+      { name:"Aramaic", native:"𐡀𐡁𐡂", type:"abjad", era:"~800 BCE", ancestor:"Phoenician", geo:"Levant / Mesopotamia", dir:"RTL", vowels:"Optional diacritics", phoneme:"Consonant", speakers:"~400k (Neo-Aramaic)", langs:"Aramaic, Syriac, Assyrian", note:"Imperial lingua franca; ancestor of Arabic, Hebrew square script, Brahmi (debated)", highlight:false },
+      { name:"Hebrew (square script)", native:"אבגד", type:"abjad", era:"~300 BCE (square form)", ancestor:"Aramaic", geo:"Levant", dir:"RTL", vowels:"Optional niqqud", phoneme:"Consonant (22)", speakers:"~9M", langs:"Hebrew, Yiddish (historically)", note:"Niqqud vowel points added by Masoretes ~600–900 CE", highlight:false },
+      { name:"Arabic", native:"أبجد", type:"abjad", era:"~400 CE", ancestor:"Nabataean Aramaic", geo:"Arabian Peninsula", dir:"RTL", vowels:"Optional harakat", phoneme:"Consonant (28)", speakers:"~400M", langs:"Arabic, Urdu, Persian, Sindhi, Pashto, Malay (Jawi)", note:"Calligraphic cursive; letters change shape by position", highlight:false },
+      { name:"Syriac", native:"ܐܒܓ", type:"abjad", era:"~1st century CE", ancestor:"Aramaic", geo:"Edessa (SE Turkey)", dir:"RTL", vowels:"Optional", phoneme:"Consonant (22)", speakers:"~1M", langs:"Syriac, Christian liturgy across Asia", note:"Carried Christianity to India, China; ancestor of Sogdian → Mongolian", highlight:false },
+    ]
+  },
+  {
+    group: "II. Phoenician → Greek → Latin / Cyrillic branch",
+    rows: [
+      { name:"Greek", native:"Αβγδ", type:"alphabet", era:"~800 BCE", ancestor:"Phoenician (adapted)", geo:"Greece / Aegean", dir:"LTR (originally boustrophedon)", vowels:"Yes — first true alphabet", phoneme:"Consonant + vowel (24)", speakers:"~13M", langs:"Greek", note:"Revolutionary: added vowel letters; ancestor of Latin, Cyrillic, Coptic", highlight:false },
+      { name:"Latin (Roman)", native:"ABCD", type:"alphabet", era:"~700 BCE", ancestor:"Etruscan ← Greek", geo:"Central Italy", dir:"LTR", vowels:"Yes", phoneme:"Consonant + vowel (26 modern)", speakers:"~3.5B (as script)", langs:"All Romance, Germanic, many African, SE Asian languages", note:"Most widely used script on earth today", highlight:false },
+      { name:"Cyrillic", native:"АБВ", type:"alphabet", era:"~940 CE", ancestor:"Greek (Glagolitic)", geo:"Bulgaria (First Bulgarian Empire)", dir:"LTR", vowels:"Yes", phoneme:"Consonant + vowel (varies 30–72)", speakers:"~250M", langs:"Russian, Ukrainian, Bulgarian, Serbian, Mongolian, Central Asian", note:"Created by disciples of Cyril & Methodius; adapted to Slavic phonology", highlight:false },
+      { name:"Coptic", native:"ⲀⲂⲄⲆ", type:"alphabet", era:"~2nd century CE", ancestor:"Greek + Demotic Egyptian", geo:"Egypt", dir:"LTR", vowels:"Yes", phoneme:"Consonant + vowel (32)", speakers:"~300 (liturgical)", langs:"Coptic Christianity liturgy", note:"Last stage of Egyptian language; Greek letters + 6 Demotic additions", highlight:false },
+      { name:"Armenian", native:"Աբ", type:"alphabet", era:"~405 CE", ancestor:"Greek (influenced)", geo:"Armenia", dir:"LTR", vowels:"Yes (38 letters)", phoneme:"Consonant + vowel", speakers:"~6.7M", langs:"Armenian", note:"Created by Mesrop Mashtots; unique to Armenian phonology", highlight:false },
+      { name:"Georgian", native:"ⴀⴁⴂ", type:"alphabet", era:"~430 CE", ancestor:"Aramaic or Greek (debated)", geo:"Caucasus / Georgia", dir:"LTR", vowels:"Yes (33 letters)", phoneme:"Consonant + vowel", speakers:"~3.7M", langs:"Georgian, Mingrelian, Svan", note:"Three historical scripts: Asomtavruli, Nuskhuri, Mkhedruli (modern)", highlight:false },
+      { name:"Runic (Elder Futhark)", native:"ᚠᚢᚦ", type:"alphabet", era:"~150 CE", ancestor:"Italic (Old Latin variant)", geo:"Germanic / Scandinavia", dir:"LTR / variable", vowels:"Yes (partial)", phoneme:"Consonant + vowel (24)", speakers:"— (extinct)", langs:"Proto-Germanic, Norse", note:"Carved on stone; no horizontal strokes (avoids wood grain ambiguity)", highlight:false },
+      { name:"Ogham", native:"ᚑᚌᚆᚐᚋ", type:"alphabet", era:"~4th century CE", ancestor:"Latin (adapted)", geo:"Ireland / Wales", dir:"BTT (bottom-to-top)", vowels:"Yes", phoneme:"Consonant + vowel (20)", speakers:"— (extinct)", langs:"Primitive Irish", note:"Strokes along a central stem line; earliest Irish writing", highlight:false },
+    ]
+  },
+  {
+    group: "III. Brahmi lineage — the Indian script family ⭐ (HIGHLIGHTED)",
+    rows: [
+      { name:"Brahmi", native:"𑀩𑁆𑀭𑀸𑀳𑁆𑀫𑀻", type:"abugida", era:"~300 BCE (Ashokan edicts)", ancestor:"Debated: Aramaic, Semitic, or indigenous", geo:"Indian subcontinent", dir:"LTR", vowels:"Yes — inherent vowel + diacritics", phoneme:"Consonant + inherent 'a' vowel", speakers:"— (ancestor / extinct)", langs:"Pali, Sanskrit, Prakrit", note:"ROOT of ALL South & Southeast Asian scripts; ~200 descendant scripts", highlight:true },
+      { name:"Sanskrit / Vedic (in Brahmi)", native:"संस्कृत", type:"abugida", era:"Written ~300 BCE; spoken ~1500 BCE+", ancestor:"Brahmi (script); Proto-Indo-Iranian (language)", geo:"Indian subcontinent", dir:"LTR", vowels:"Full vowel system", phoneme:"Consonant + vowel (matras)", speakers:"~25k native; millions liturgical", langs:"Vedas, Upanishads, epics, classical literature", note:"Language of Rigveda; most phonetically complete grammar (Panini, ~400 BCE)", highlight:true },
+      { name:"Prakrit scripts (Brahmi-based)", native:"𑀧𑁆𑀭𑀸𑀓𑀺𑀢", type:"abugida", era:"~300 BCE – 1000 CE", ancestor:"Brahmi", geo:"Indian subcontinent", dir:"LTR", vowels:"Yes", phoneme:"Consonant + vowel", speakers:"— (ancestral to modern IA langs)", langs:"Pali, Ardhamagadhi, Shauraseni, Gandhari", note:"Pali = Theravada Buddhism canon; Jain texts in Ardhamagadhi", highlight:true },
+      { name:"Devanagari", native:"देवनागरी", type:"abugida", era:"~7th–11th c. CE (mature ~1200 CE)", ancestor:"Brahmi → Gupta → Siddham → Nagari", geo:"North India", dir:"LTR (horizontal headline bar)", vowels:"Yes — independent vowels + matras", phoneme:"Consonant + inherent 'a'; 11 vowels, 36 consonants", speakers:"~600M (as script)", langs:"Hindi, Sanskrit, Marathi, Nepali, Maithili, Sindhi, Bodo, Dogri", note:"'Script of the city of the gods'; distinctive shirobrekha (top bar); most phonemically precise major script", highlight:true },
+      { name:"Gupta script", native:"(Gupta era)", type:"abugida", era:"~320–600 CE", ancestor:"Brahmi", geo:"North India (Gupta Empire)", dir:"LTR", vowels:"Yes", phoneme:"Consonant + vowel", speakers:"— (extinct)", langs:"Sanskrit (Gupta imperial)", note:"Direct parent of Devanagari, Sharada, Siddham (Buddhist tantric)", highlight:true },
+      { name:"Sharada", native:"𑆯𑆳𑆫𑆢𑆳", type:"abugida", era:"~8th–9th century CE", ancestor:"Brahmi → Gupta → Sharada", geo:"Kashmir", dir:"LTR", vowels:"Yes", phoneme:"Consonant + vowel", speakers:"Few (scholarly/liturgical)", langs:"Sanskrit and Kashmiri (historically)", note:"Used for Sanskrit manuscripts in Kashmir; parent of Gurmukhi and Landa", highlight:true },
+      { name:"Gurmukhi (Punjabi)", native:"ਗੁਰਮੁਖੀ", type:"abugida", era:"~16th century CE (Guru Angad Dev)", ancestor:"Brahmi → Sharada → Landa → Gurmukhi", geo:"Punjab", dir:"LTR (headline bar like Devanagari)", vowels:"Yes", phoneme:"Consonant + vowel (35+3)", speakers:"~30M", langs:"Punjabi (Sikh scripture)", note:"Script of Guru Granth Sahib; 'from the mouth of the Guru'", highlight:true },
+      { name:"Gujarati", native:"ગુજરાતી", type:"abugida", era:"~13th century CE", ancestor:"Brahmi → Devanagari (without headline)", geo:"Gujarat", dir:"LTR", vowels:"Yes", phoneme:"Consonant + vowel", speakers:"~56M", langs:"Gujarati", note:"Devanagari without shirobrekha (top bar); merchants simplified for commerce", highlight:false },
+      { name:"Bengali / Bangla", native:"বাংলা", type:"abugida", era:"~11th century CE", ancestor:"Brahmi → Siddham → Gaudi", geo:"Bengal (India/Bangladesh)", dir:"LTR", vowels:"Yes (matra system)", phoneme:"Consonant + vowel", speakers:"~230M", langs:"Bengali, Assamese, Meitei", note:"Shares family with Assamese; Rabindranath Tagore wrote in this script", highlight:false },
+      { name:"Odia (Oriya)", native:"ଓଡ଼ିଆ", type:"abugida", era:"~10th century CE", ancestor:"Brahmi → Siddham → Odia", geo:"Odisha", dir:"LTR (curved top, no headline)", vowels:"Yes", phoneme:"Consonant + vowel", speakers:"~35M", langs:"Odia", note:"Semicircular tops from palm leaf writing", highlight:false },
+      { name:"Tamil (Grantha derivative)", native:"தமிழ்", type:"abugida", era:"~3rd c. BCE (Brahmi Tamil)", ancestor:"Brahmi (Tamil variant)", geo:"South India / Sri Lanka", dir:"LTR", vowels:"Yes (18 vowel forms)", phoneme:"Consonant + vowel (247 compound)", speakers:"~80M", langs:"Tamil", note:"Oldest surviving classical language of India; Sangam literature ~200 BCE–300 CE", highlight:false },
+      { name:"Telugu", native:"తెలుగు", type:"abugida", era:"~6th century CE", ancestor:"Brahmi → Kadamba → Telugu-Kannada", geo:"Andhra Pradesh / Telangana", dir:"LTR", vowels:"Yes", phoneme:"Consonant + vowel", speakers:"~83M", langs:"Telugu", note:"'Italian of the East' for phonetic musicality", highlight:false },
+      { name:"Kannada", native:"ಕನ್ನಡ", type:"abugida", era:"~5th–6th century CE", ancestor:"Brahmi → Kadamba", geo:"Karnataka", dir:"LTR", vowels:"Yes", phoneme:"Consonant + vowel", speakers:"~44M", langs:"Kannada", note:"Distinct rounded forms evolved separately from Telugu", highlight:false },
+      { name:"Malayalam", native:"മലയാളം", type:"abugida", era:"~13th century CE", ancestor:"Brahmi → Grantha → Malayalam-Grantha", geo:"Kerala", dir:"LTR", vowels:"Yes", phoneme:"Consonant + vowel", speakers:"~38M", langs:"Malayalam", note:"Most circular script; 578 characters historically; highly phonetically precise", highlight:false },
+      { name:"Tibetan", native:"བོད་", type:"abugida", era:"~7th century CE", ancestor:"Brahmi → Gupta → Siddham (Thonmi Sambhota)", geo:"Tibet / Himalayan region", dir:"LTR", vowels:"Yes", phoneme:"Consonant + vowel stack", speakers:"~6M", langs:"Tibetan, Dzongkha (Bhutan)", note:"Carried Sanskrit Buddhist canon; vertical consonant stacking unique", highlight:false },
+      { name:"Sinhala", native:"සිංහල", type:"abugida", era:"~3rd century BCE", ancestor:"Brahmi → Sinhala Brahmi", geo:"Sri Lanka", dir:"LTR", vowels:"Yes", phoneme:"Consonant + vowel", speakers:"~17M", langs:"Sinhala", note:"Some of oldest Brahmi inscriptions are Sinhala; oval forms from palm leaf writing", highlight:false },
+      { name:"Burmese (Myanmar)", native:"မြန်မာ", type:"abugida", era:"~11th century CE", ancestor:"Brahmi → Mon → Burmese", geo:"Myanmar", dir:"LTR", vowels:"Yes (diacritics)", phoneme:"Consonant + vowel", speakers:"~33M", langs:"Burmese, Mon, Karen, Shan", note:"Rounded letters; no vertical lines to avoid tearing palm leaves", highlight:false },
+      { name:"Khmer", native:"ភាសាខ្មែរ", type:"abugida", era:"~7th century CE", ancestor:"Brahmi → Pallava → Khmer", geo:"Cambodia", dir:"LTR", vowels:"Yes (complex, two registers)", phoneme:"Consonant + vowel", speakers:"~16M", langs:"Khmer", note:"Oldest dated inscription in SE Asia (611 CE); subscript consonant stacking", highlight:false },
+      { name:"Thai", native:"ภาษาไทย", type:"abugida", era:"~13th century CE (1283 CE, Ramkhamhaeng)", ancestor:"Brahmi → Pallava → Mon → Khmer → Thai", geo:"Thailand", dir:"LTR", vowels:"Yes (written around consonants)", phoneme:"Consonant (44) + vowel (15+)", speakers:"~60M", langs:"Thai, Lao", note:"Tonal markers encoded in script; vowels appear before, above, below, and after consonants", highlight:false },
+    ]
+  },
+  {
+    group: "IV. Aramaic → Sogdian → East / Central Asian branch",
+    rows: [
+      { name:"Sogdian", native:"𐼀𐼁𐼂", type:"abjad", era:"~4th–10th century CE", ancestor:"Aramaic → Syriac", geo:"Sogdia (Uzbekistan/Tajikistan)", dir:"RTL → rotated vertical", vowels:"Optional", phoneme:"Consonant", speakers:"— (extinct)", langs:"Sogdian (Silk Road lingua franca)", note:"Critical bridge: ancestor of Old Uyghur → Mongolian → Manchu", highlight:false },
+      { name:"Old Uyghur", native:"ئۇيغۇر", type:"alphabet", era:"~8th–15th century CE", ancestor:"Sogdian", geo:"Central Asia / Tarim Basin", dir:"Vertical (top-to-bottom, L to R)", vowels:"Partially", phoneme:"Consonant + some vowels", speakers:"— (mostly replaced)", langs:"Old Uyghur (Turkic)", note:"Genghis Khan adopted for Mongol script; direct ancestor of Mongolian", highlight:false },
+      { name:"Mongolian (traditional)", native:"ᠮᠣᠩᠭᠣᠯ", type:"alphabet", era:"~13th century CE", ancestor:"Old Uyghur", geo:"Mongolia / Inner Mongolia", dir:"Vertical (top-to-bottom)", vowels:"Yes", phoneme:"Consonant + vowel", speakers:"~6M (traditional script minority)", langs:"Mongolian", note:"Only major vertically-written left-to-right script; Syriac→Sogdian lineage, NOT Brahmi", highlight:false },
+      { name:"Manchu", native:"ᠮᠠᠨᠵᡠ", type:"alphabet", era:"~1599 CE", ancestor:"Mongolian → Manchu (adapted)", geo:"Manchuria (NE China)", dir:"Vertical (top-to-bottom)", vowels:"Yes (dots/circles)", phoneme:"Consonant + vowel", speakers:"~20 (critically endangered)", langs:"Manchu (Qing Dynasty official)", note:"Qing emperors wrote edicts in Manchu; related to Mongolian not Chinese characters", highlight:false },
+    ]
+  },
+  {
+    group: "V. East Asian logographic branch (independent origin)",
+    rows: [
+      { name:"Chinese — Classical (Oracle Bone)", native:"甲骨文", type:"logographic", era:"~1250 BCE (Oracle Bone); ~1500–2000 BCE proto-forms", ancestor:"Indigenous — no Semitic ancestor", geo:"Yellow River Valley, China", dir:"Historically variable; now LTR or vertical", vowels:"Not encoded (morphosyllabic)", phoneme:"Morpheme (1 char = 1 syllable = 1 meaning)", speakers:"~1.4B (as script)", langs:"Mandarin, Cantonese, Wu, Min, Hakka, Hokkien", note:"Fully independent origin; no borrowing from Brahmi or Semitic (see special section)", highlight:false },
+      { name:"Chinese — Traditional (繁體)", native:"繁體字", type:"logographic", era:"Standard form ~200 CE (kǎishū)", ancestor:"Oracle Bone → Bronze → Seal → Clerical → Standard", geo:"Taiwan, Hong Kong, Macau", dir:"LTR or top-to-bottom", vowels:"Not encoded", phoneme:"Morpheme (~50,000 chars; ~3,500 for literacy)", speakers:"~25M primary", langs:"Mandarin (Taiwan), Cantonese (HK)", note:"Full form preserved; used in classical scholarship, calligraphy, diaspora", highlight:false },
+      { name:"Chinese — Simplified (简体)", native:"简体字", type:"logographic", era:"1950s–1960s (PRC reform)", ancestor:"Traditional Chinese (stroke reduction)", geo:"Mainland China, Singapore", dir:"LTR", vowels:"Not encoded", phoneme:"Morpheme (fewer strokes, same sound-meaning)", speakers:"~1.35B primary", langs:"Mandarin (PRC)", note:"~2,200 simplified characters; some characters merged (loses etymological clarity)", highlight:false },
+      { name:"Japanese — Kanji", native:"漢字", type:"logographic", era:"~5th century CE (borrowed from China)", ancestor:"Chinese characters (adapted)", geo:"Japan", dir:"LTR or top-to-bottom", vowels:"Not in kanji alone", phoneme:"Morpheme (on-yomi + kun-yomi readings)", speakers:"~125M", langs:"Japanese", note:"~2,136 jōyō kanji mandated; layered with Hiragana/Katakana in real text", highlight:false },
+      { name:"Japanese — Hiragana", native:"ひらがな", type:"syllabary", era:"~9th century CE", ancestor:"Chinese cursive (sōsho) → simplified", geo:"Japan", dir:"LTR or top-to-bottom", vowels:"Yes (each symbol = CV syllable)", phoneme:"Syllable (46 basic)", speakers:"~125M", langs:"Japanese (grammatical particles, native words)", note:"Developed by women at Heian court; used for native Japanese words + grammar", highlight:false },
+      { name:"Japanese — Katakana", native:"カタカナ", type:"syllabary", era:"~9th century CE", ancestor:"Chinese character components (kaisho parts)", geo:"Japan", dir:"LTR or top-to-bottom", vowels:"Yes", phoneme:"Syllable (46 basic)", speakers:"~125M", langs:"Japanese (foreign loanwords, emphasis, onomatopoeia)", note:"Angular forms; used for foreign words, scientific names", highlight:false },
+      { name:"Korean — Hangul", native:"한글", type:"featural", era:"1443 CE (King Sejong, Joseon Dynasty)", ancestor:"Independently invented; phonological analysis of Korean", geo:"Korea", dir:"LTR (historically top-to-bottom)", vowels:"Yes (separate vowel letters)", phoneme:"Feature (letter shape encodes phoneme articulation)", speakers:"~80M", langs:"Korean", note:"Most scientifically designed script ever; letters encode tongue/lip position; grouped into syllable blocks", highlight:false },
+    ]
+  },
+  {
+    group: "VI. Other independent / notable systems",
+    rows: [
+      { name:"Ethiopic (Ge'ez / Fidel)", native:"ፊደል", type:"abugida", era:"~4th century CE", ancestor:"South Arabian Musnad (Epigraphic South Arabian)", geo:"Ethiopia / Eritrea", dir:"LTR", vowels:"Yes — 7 vowel orders per consonant", phoneme:"Consonant + vowel (syllabic grid)", speakers:"~57M (Amharic)", langs:"Amharic, Tigrinya, Ge'ez, Oromo", note:"Africa's own abugida; unrelated to Brahmi; descended from South Arabian not Phoenician", highlight:false },
+      { name:"Egyptian Hieroglyphics", native:"𓀀𓀁𓂀", type:"logographic", era:"~3200 BCE", ancestor:"Indigenous Egyptian", geo:"Egypt (Nile Valley)", dir:"LTR / RTL / top-to-bottom (context-dependent)", vowels:"Not represented (abjad-like)", phoneme:"Morpheme + phonogram (biliterals, triliterals)", speakers:"— (extinct; Coptic is descendant)", langs:"Ancient Egyptian", note:"~1,000 distinct glyphs; deciphered via Rosetta Stone 1822 (Champollion); ancestor of Proto-Sinaitic", highlight:false },
+      { name:"Cuneiform (Sumerian/Akkadian)", native:"𒀭𒀭𒀭", type:"logographic", era:"~3400–3100 BCE", ancestor:"Proto-cuneiform (pictographic)", geo:"Mesopotamia (Iraq)", dir:"LTR (originally top-to-bottom)", vowels:"Later syllabic signs encoded vowels", phoneme:"Morpheme → syllable (evolved)", speakers:"— (extinct)", langs:"Sumerian, Akkadian, Elamite, Hittite, Ugaritic", note:"Oldest confirmed writing system; pressed in clay with reed stylus; 3,000+ years of use", highlight:false },
+      { name:"Linear B (Mycenaean Greek)", native:"𐀀𐀁𐀂", type:"syllabary", era:"~1450–1200 BCE", ancestor:"Linear A (undeciphered Minoan)", geo:"Crete / Mycenae, Greece", dir:"LTR", vowels:"Yes (each symbol = V or CV)", phoneme:"Syllable (~90 signs)", speakers:"— (extinct)", langs:"Mycenaean Greek", note:"Deciphered 1952 (Michael Ventris); predates Greek alphabet by 600 years", highlight:false },
+      { name:"Cherokee syllabary", native:"ᏣᎳᎩ", type:"syllabary", era:"1820 CE (Sequoyah)", ancestor:"Independently invented (Sequoyah was illiterate)", geo:"Cherokee Nation, USA", dir:"LTR", vowels:"Yes (each symbol = CV syllable)", phoneme:"Syllable (85 symbols)", speakers:"~2,000", langs:"Cherokee", note:"Solo invention; Sequoyah saw English as 'talking leaves'; tribe adopted it rapidly", highlight:false },
+      { name:"Braille", native:"⠃⠗⠁⠊⠇⠇⠑", type:"featural", era:"1824 CE (Louis Braille)", ancestor:"Adapted from Barbier night writing", geo:"France", dir:"LTR (tactile)", vowels:"Yes", phoneme:"Consonant + vowel (6-dot cell = 64 combinations)", speakers:"~300k active readers worldwide", langs:"Adapted to every major language", note:"Tactile script; Grade 1 = letter-for-letter; Grade 2 = contracted shorthand", highlight:false },
+      { name:"IPA (International Phonetic Alphabet)", native:"ˈɪntəˌnæʃ.ən.əl fəˈnɛt.ɪk", type:"alphabet", era:"1888 CE (International Phonetic Association)", ancestor:"Latin + Greek + invented diacritics", geo:"France (Paris)", dir:"LTR", vowels:"Yes (precise tongue/lip height encoded)", phoneme:"Phone (every known human speech sound)", speakers:"Linguists, teachers worldwide", langs:"Metalanguage for all human languages", note:"~160 base symbols + diacritics; encodes every known human speech sound", highlight:false },
+    ]
+  }
+];
+
+function getBadgeClass(type) {
+  if (type.includes('abjad')) return 'badge-abjad';
+  if (type.includes('abugida')) return 'badge-abugida';
+  if (type.includes('alphabet')) return 'badge-alphabet';
+  if (type.includes('syllabary')) return 'badge-syllabary';
+  if (type.includes('logographic')) return 'badge-logographic';
+  if (type.includes('featural')) return 'badge-featural';
+  return 'badge-mixed';
+}
+function getTypeLabel(type) {
+  const map = { 'abjad':'Abjad','alphabet':'Alphabet','abugida':'Abugida','syllabary':'Syllabary','logographic':'Logographic','featural':'Featural' };
+  for (const k of Object.keys(map)) { if (type.includes(k)) return map[k]; }
+  return type;
+}
+
+function renderTable(filter) {
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = '';
+  data.forEach(section => {
+    let rows = filter === 'all' ? section.rows : section.rows.filter(r => r.type.includes(filter));
+    if (!rows.length) return;
+    const gr = document.createElement('tr');
+    gr.className = 'section-group-row';
+    gr.innerHTML = `<td colspan="11">${section.group}</td>`;
+    tbody.appendChild(gr);
+    rows.forEach(row => {
+      const tr = document.createElement('tr');
+      if (row.highlight) tr.className = 'row-highlight';
+      tr.innerHTML = `
+        <td><span class="script-name">${row.name}</span><span class="native">${row.native}</span>${row.highlight ? '<span class="special-note">⭐ Brahmi/Sanskrit family</span>' : ''}</td>
+        <td><span class="badge ${getBadgeClass(row.type)}">${getTypeLabel(row.type)}</span></td>
+        <td style="font-size:11px;color:var(--color-text-tertiary);">${row.era}</td>
+        <td style="font-size:11px;color:var(--color-text-secondary);">${row.ancestor}</td>
+        <td style="font-size:11px;">${row.geo}</td>
+        <td style="font-size:11px;">${row.dir}</td>
+        <td style="font-size:11px;">${row.vowels}</td>
+        <td style="font-size:11px;">${row.phoneme}</td>
+        <td style="font-size:11px;color:var(--color-text-secondary);">${row.speakers}</td>
+        <td style="font-size:11px;">${row.langs}</td>
+        <td style="font-size:11px;color:var(--color-text-secondary);font-style:italic;">${row.note}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  });
+}
+
+function filterTable(type, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable(type);
+}
+
+renderTable('all');
+</script>
+</body>
+</html>
